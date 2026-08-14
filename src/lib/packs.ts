@@ -46,3 +46,7 @@ export const scenePacks: ScenePack[] = [
 ];
 
 export const featuredQueries = ["frontend", "pdf", "react", "review", "nextjs"];
+
+export function packMessageKey(slug: string, field: "title" | "summary") {
+  return `pack.${slug}.${field}`;
+}

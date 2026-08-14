@@ -76,7 +76,7 @@ body {
 
 .catalog-row {
   display: grid;
-  grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr) 88px 72px;
+  grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr) 88px 5.5rem;
   gap: 16px;
   align-items: baseline;
 }
@@ -120,6 +120,7 @@ body {
 .skill-prose li {
   line-height: 1.8;
   color: var(--quiet);
+  text-wrap: pretty;
 }
 
 .skill-prose strong {
@@ -159,6 +160,22 @@ body {
   color: var(--accent);
   text-decoration: underline;
   text-underline-offset: 3px;
+}
+
+.hero-title-neon-cyan {
+  color: #3ef6ff;
+  text-shadow:
+    0 0 8px rgba(62, 246, 255, 0.9),
+    0 0 22px rgba(62, 246, 255, 0.5),
+    0 0 48px rgba(62, 246, 255, 0.28);
+}
+
+.hero-title-neon-pink {
+  color: #ff3ec8;
+  text-shadow:
+    0 0 8px rgba(255, 62, 200, 0.9),
+    0 0 22px rgba(255, 62, 200, 0.45),
+    0 0 48px rgba(122, 107, 255, 0.22);
 }
 
 @media (prefers-reduced-motion: reduce) {

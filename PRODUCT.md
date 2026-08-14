@@ -1,4 +1,4 @@
-# Skills 汇总
+# 汇总skill
 
 中文 Agent Skills 市场。GitHub 上的公开 `SKILL.md` 是货源，本站做发现、预览和一键安装。
 

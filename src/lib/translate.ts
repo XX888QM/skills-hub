@@ -1,3 +1,4 @@
+import { translate, type Locale } from "./i18n";
 import type { SkillDetail, SkillRecord } from "./types";
 
 const memory = new Map<string, { expires: number; value: string }>();
@@ -19,10 +20,10 @@ const categories: Record<string, string> = {
   "AI & ML": "人工智能",
 };
 
-export function originLabel(origin: SkillRecord["origin"]) {
-  if (origin === "skills.sh") return "安装榜";
-  if (origin === "skillmd") return "精选库";
-  return "GitHub";
+export function originLabel(origin: SkillRecord["origin"], locale: Locale = "zh") {
+  if (origin === "skills.sh") return translate(locale, "origin.skills.sh");
+  if (origin === "skillmd") return translate(locale, "origin.skillmd");
+  return translate(locale, "origin.github");
 }
 
 export function looksChinese(text: string) {
@@ -134,6 +135,20 @@ export async function translateMarkdown(markdown: string) {
   return store(key, restore(translated.join(""), held));
 }
 
+export function localizeRecordsCached<T extends SkillRecord>(skills: T[]): T[] {
+  return skills.map((skill) => ({
+    ...skill,
+    description: skill.description
+      ? looksChinese(skill.description)
+        ? skill.description
+        : cached(`t:${skill.description.trim()}`) ?? skill.description
+      : skill.description,
+    category: skill.category
+      ? categories[skill.category] ?? skill.category
+      : skill.category,
+  }));
+}
+
 export async function localizeRecords(skills: SkillRecord[]) {
   return mapPool(skills, 5, async (skill) => ({
     ...skill,
@@ -142,6 +157,30 @@ export async function localizeRecords(skills: SkillRecord[]) {
       : skill.description,
     category: await translateCategory(skill.category),
   }));
+}
+
+export async function localizeRecordsBounded<T extends SkillRecord>(
+  skills: T[],
+  ms = 1200,
+): Promise<T[]> {
+  try {
+    const localized = localizeRecords(skills);
+    const winner = await Promise.race([
+      localized.then((value) => ({ timedOut: false as const, value })),
+      new Promise<{ timedOut: true }>((resolve) => {
+        setTimeout(() => resolve({ timedOut: true }), ms);
+      }),
+    ]);
+    if (!winner.timedOut) {
+      return winner.value.map((skill, index) => ({
+        ...skills[index],
+        ...skill,
+      }));
+    }
+  } catch {
+    // 超时或失败时退回缓存/原文，避免首屏被翻译拖死
+  }
+  return localizeRecordsCached(skills);
 }
 
 export async function localizeDetail(skill: SkillDetail): Promise<SkillDetail> {

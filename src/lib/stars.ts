@@ -1,6 +1,6 @@
-import { loadGithubRepo, searchSkills } from "./sources";
+import { loadGithubRepo, searchMany, searchSkills } from "./sources";
 import { translateText } from "./translate";
-import type { GithubRepo, StarBoardItem } from "./types";
+import type { CatalogItem, GithubRepo, StarBoardItem } from "./types";
 
 const SEED_REPOS = [
   "anthropics/skills",
@@ -68,7 +68,7 @@ async function searchGithubSkillRepos() {
   const groups = await Promise.all(
     SEARCH_QUERIES.map(async (query) => {
       const response = await fetch(
-        `https://api.github.com/search/repositories?q=${encodeURIComponent(query)}&sort=stars&order=desc&per_page=15`,
+        `https://api.github.com/search/repositories?q=${encodeURIComponent(query)}&sort=stars&order=desc&per_page=30`,
         {
           headers: githubHeaders(),
           next: { revalidate: 86400, tags: ["github-hot"] },
@@ -91,22 +91,71 @@ async function searchGithubSkillRepos() {
   return [...bySource.values()].map(asItem);
 }
 
-export async function loadStarBoard(limit = 10) {
+function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T | null> {
+  return new Promise((resolve) => {
+    const timer = setTimeout(() => resolve(null), ms);
+    promise.then(
+      (value) => {
+        clearTimeout(timer);
+        resolve(value);
+      },
+      () => {
+        clearTimeout(timer);
+        resolve(null);
+      },
+    );
+  });
+}
+
+let lastHotRepos: StarBoardItem[] = [];
+
+async function loadHotReposUncached(limit: number) {
   const found = await searchGithubSkillRepos();
   const bySource = new Map(found.map((item) => [item.source.toLowerCase(), item]));
 
-  await Promise.all(
-    SEED_REPOS.map(async (source) => {
-      if (bySource.has(source.toLowerCase())) return;
-      const repo = await loadGithubRepo(source);
-      if (repo) bySource.set(source.toLowerCase(), asItem(repo));
-    }),
-  );
+  if (bySource.size < limit) {
+    await Promise.all(
+      SEED_REPOS.map(async (source) => {
+        if (bySource.has(source.toLowerCase())) return;
+        const repo = await loadGithubRepo(source);
+        if (repo) bySource.set(source.toLowerCase(), asItem(repo));
+      }),
+    );
+  }
 
-  const ranked = [...bySource.values()]
+  return [...bySource.values()]
     .filter((item) => item.stars > 0)
     .sort((a, b) => b.stars - a.stars)
     .slice(0, limit);
+}
+
+export async function loadHotRepos(limit = 40, opts?: { timeoutMs?: number }) {
+  const work = loadHotReposUncached(limit);
+  const result = opts?.timeoutMs ? await withTimeout(work, opts.timeoutMs) : await work.catch(() => null);
+  if (result?.length) {
+    lastHotRepos = result;
+    return result;
+  }
+  if (lastHotRepos.length) return lastHotRepos.slice(0, limit);
+  return result ?? [];
+}
+
+function repoToCatalogItem(item: StarBoardItem): CatalogItem {
+  const repo = item.source.split("/")[1] ?? item.source;
+  return {
+    id: `${item.source}/${repo}`,
+    name: repo,
+    source: item.source,
+    description: item.description,
+    origin: "github",
+    stars: item.stars,
+    forks: item.forks,
+    pushedAt: item.pushedAt,
+  };
+}
+
+export async function loadStarBoard(limit = 10) {
+  const ranked = await loadHotRepos(limit);
 
   const withSkills = await Promise.all(
     ranked.map(async (item) => {
@@ -126,4 +175,75 @@ export async function loadStarBoard(limit = 10) {
   );
 
   return withSkills;
+}
+
+const CATALOG_QUERIES = [
+  "skill",
+  "frontend",
+  "pdf",
+  "react",
+  "review",
+  "nextjs",
+  "claude",
+  "cursor",
+  "agent",
+  "anthropic",
+];
+
+export const CATALOG_FIRST_PAGE_SIZE = 36;
+export const CATALOG_FIRST_PAGE_TIMEOUT_MS = 4000;
+
+const QUERY_BATCHES = [
+  CATALOG_QUERIES.slice(0, 3),
+  CATALOG_QUERIES.slice(3, 6),
+  CATALOG_QUERIES.slice(6, 8),
+  CATALOG_QUERIES.slice(8),
+];
+
+export const CATALOG_MORE_PAGES = QUERY_BATCHES.length;
+
+function attachRepoMeta(skills: CatalogItem[], repos: StarBoardItem[]): CatalogItem[] {
+  const repoBySource = new Map(repos.map((item) => [item.source.toLowerCase(), item]));
+  return skills.map((skill) => {
+    const repo = repoBySource.get(skill.source.toLowerCase());
+    return {
+      ...skill,
+      stars: skill.stars ?? repo?.stars,
+      forks: skill.forks ?? repo?.forks,
+      pushedAt: skill.pushedAt ?? repo?.pushedAt,
+    };
+  });
+}
+
+export async function loadCatalogFirstPage() {
+  const repos = await loadHotRepos(CATALOG_FIRST_PAGE_SIZE, {
+    timeoutMs: CATALOG_FIRST_PAGE_TIMEOUT_MS,
+  });
+  const items = repos.map(repoToCatalogItem);
+  return {
+    items,
+    hasMore: CATALOG_MORE_PAGES > 0,
+  };
+}
+
+export async function loadCatalogPage(page: number) {
+  const batch = QUERY_BATCHES[page - 1];
+  if (!batch?.length) return { items: [] as CatalogItem[], hasMore: false };
+
+  const extras = await searchMany(batch);
+  const repos = await loadHotRepos(CATALOG_FIRST_PAGE_SIZE, { timeoutMs: 2500 });
+  const items = attachRepoMeta(
+    extras.map((skill) => ({
+      ...skill,
+      stars: undefined,
+      forks: undefined,
+      pushedAt: undefined,
+    })),
+    repos,
+  );
+
+  return {
+    items,
+    hasMore: page < QUERY_BATCHES.length,
+  };
 }

@@ -6,7 +6,7 @@
 
 ---
 
-**Project:** Skills 汇总
+**Project:** 汇总skill
 **Generated:** 2026-08-14 11:53:14
 **Category:** Marketplace (P2P)
 **Design Dials:** Variance 4/10 (Balanced / Modern) | Motion 8/10 (Complex) | Density 3/10 (Spacious)

@@ -60,3 +60,9 @@ export type StarBoardItem = {
   pushedAt?: string;
   skills: SkillRecord[];
 };
+
+export type CatalogItem = SkillRecord & {
+  stars?: number;
+  forks?: number;
+  pushedAt?: string;
+};

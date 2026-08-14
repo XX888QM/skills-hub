@@ -1,5 +1,8 @@
-import { CopyForAgent } from "@/components/CopyForAgent";
+"use client";
+
+import { useI18n } from "@/components/I18nProvider";
 import { InstallCommand } from "@/components/InstallCommand";
+import { KeepTogether } from "@/components/KeepTogether";
 import type { SkillDetail } from "@/lib/types";
 
 const defaultAgents = ["Cursor", "Claude Code", "Codex"];
@@ -7,57 +10,65 @@ const defaultAgents = ["Cursor", "Claude Code", "Codex"];
 const agentNames: Record<string, string> = {
   "claude-code": "Claude Code",
   "claude-ai": "Claude",
-  "codex": "Codex",
+  codex: "Codex",
   cursor: "Cursor",
 };
 
 export function UsageGuide({ skill }: { skill: SkillDetail }) {
+  const { t, locale } = useI18n();
   const agents = (skill.agents?.length ? skill.agents : defaultAgents).map(
     (agent) => agentNames[agent] ?? agent,
   );
+  const sep = locale === "zh" || locale === "ja" ? "、" : ", ";
 
   return (
     <section className="space-y-12">
-      <h2 className="text-3xl font-normal tracking-tight sm:text-4xl">怎么用</h2>
+      <h2 className="text-3xl font-normal tracking-tight sm:text-4xl">{t("usage.title")}</h2>
       <ol className="space-y-12">
-        <li className="grid gap-4 sm:grid-cols-[140px_minmax(0,1fr)] sm:gap-10">
-          <p className="text-sm text-quiet">安装</p>
-          <div>
-            <p className="text-lg">
-              把链接复制给正在用的 Agent，让它帮你装。也可以自己在终端执行。
+        <li className="grid gap-4 sm:grid-cols-[auto_minmax(0,1fr)] sm:items-baseline sm:gap-10">
+          <p className="shrink-0 whitespace-nowrap text-sm text-quiet">{t("usage.install")}</p>
+          <div className="min-w-0">
+            <p className="text-pretty text-lg">
+              <KeepTogether>{t("usage.installText")}</KeepTogether>
             </p>
             <div className="mt-5">
               <InstallCommand source={skill.source} />
             </div>
-            <div className="mt-4">
-              <CopyForAgent source={skill.source} name={skill.name} skillId={skill.id} />
-            </div>
           </div>
         </li>
-        <li className="grid gap-4 sm:grid-cols-[140px_minmax(0,1fr)] sm:gap-10">
-          <p className="text-sm text-quiet">对话</p>
-          <div>
-            <p className="text-lg">不必先点菜单。把要做的事说清楚，或点名这个 skill。</p>
-            <p className="mt-5 font-mono text-sm leading-7 text-quiet">
-              用 {skill.name} {skill.description ? "处理这件事" : "帮我做…"}
+        <li className="grid gap-4 sm:grid-cols-[auto_minmax(0,1fr)] sm:items-baseline sm:gap-10">
+          <p className="shrink-0 whitespace-nowrap text-sm text-quiet">{t("usage.talk")}</p>
+          <div className="min-w-0">
+            <p className="text-pretty text-lg">
+              <KeepTogether>{t("usage.talkText")}</KeepTogether>
+            </p>
+            <p className="mt-5 overflow-x-auto font-mono text-sm leading-7 text-quiet">
+              <span className="whitespace-nowrap">
+                {t("usage.talkExample", {
+                  name: skill.name,
+                  task: skill.description ? t("usage.talkTask") : t("usage.talkFallback"),
+                })}
+              </span>
             </p>
           </div>
         </li>
-        <li className="grid gap-4 sm:grid-cols-[140px_minmax(0,1fr)] sm:gap-10">
-          <p className="text-sm text-quiet">环境</p>
-          <div>
-            <p className="text-lg">{agents.join("、")}。同一份说明书可以跨工具用。</p>
-            <div className="mt-5 space-y-2 font-mono text-sm leading-7 text-quiet">
-              <p>Cursor · ~/.cursor/skills/{skill.name}/</p>
-              <p>Claude · ~/.claude/skills/{skill.name}/</p>
-              <p>Codex · ~/.agents/skills/{skill.name}/</p>
+        <li className="grid gap-4 sm:grid-cols-[auto_minmax(0,1fr)] sm:items-baseline sm:gap-10">
+          <p className="shrink-0 whitespace-nowrap text-sm text-quiet">{t("usage.env")}</p>
+          <div className="min-w-0">
+            <p className="text-pretty text-lg">
+              <KeepTogether>{t("usage.envText", { agents: agents.join(sep) })}</KeepTogether>
+            </p>
+            <div className="mt-5 space-y-2 overflow-x-auto font-mono text-sm leading-7 text-quiet">
+              <p className="whitespace-nowrap">Cursor · ~/.cursor/skills/{skill.name}/</p>
+              <p className="whitespace-nowrap">Claude · ~/.claude/skills/{skill.name}/</p>
+              <p className="whitespace-nowrap">Codex · ~/.agents/skills/{skill.name}/</p>
             </div>
           </div>
         </li>
       </ol>
       {skill.hasScripts ? (
-        <p className="max-w-2xl text-sm leading-7 text-quiet">
-          带 scripts/ 时，Agent 可能会执行仓库里的脚本。先读原文，确认命令可接受再装。
+        <p className="max-w-2xl text-pretty text-sm leading-7 text-quiet">
+          <KeepTogether>{t("usage.scripts")}</KeepTogether>
         </p>
       ) : null}
     </section>

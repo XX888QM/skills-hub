@@ -1,5 +1,5 @@
-import matter from "gray-matter";
-import { githubFileUrl, splitSkillId } from "./format";
+import { githubFileUrl, isGithubName, splitSkillId } from "./format";
+import { safeMatter } from "./matter";
 import type { GithubRepo, ResolvedSkill, SkillDetail, SkillRecord } from "./types";
 
 const UA = { "User-Agent": "skills-hub/0.1" };
@@ -142,7 +142,7 @@ export async function searchMany(queries: string[]) {
 }
 
 function looksLikeSkill(markdown: string) {
-  const parsed = matter(markdown);
+  const parsed = safeMatter(markdown);
   const name = parsed.data.name;
   const description = parsed.data.description;
   return Boolean(name && description);
@@ -172,7 +172,7 @@ export async function loadGithubRepo(source: string): Promise<GithubRepo | null>
 
   const response = await fetch(`https://api.github.com/repos/${source}`, {
     headers: githubHeaders(),
-    next: { revalidate: 300 },
+    next: { revalidate: 300, tags: ["github-repo"] },
   });
   if (!response.ok) return remember(key, 180_000, null);
 
@@ -210,13 +210,17 @@ async function loadGithubMarkdown(id: string) {
     `https://raw.githubusercontent.com/${source}/HEAD/.cursor/skills/${name}/SKILL.md`,
     `https://raw.githubusercontent.com/${source}/HEAD/SKILL.md`,
   ];
-  for (const url of candidates) {
-    const text = await readText(url);
-    if (text && looksLikeSkill(text)) {
-      return { markdown: text, rawUrl: url };
-    }
+  try {
+    return await Promise.any(
+      candidates.map(async (url) => {
+        const text = await readText(url);
+        if (text && looksLikeSkill(text)) return { markdown: text, rawUrl: url };
+        throw new Error("miss");
+      }),
+    );
+  } catch {
+    return null;
   }
-  return null;
 }
 
 async function loadSkillmdMarkdown(id: string) {
@@ -234,14 +238,27 @@ export async function loadSkillDetail(id: string, hint?: SkillRecord): Promise<S
   const cached = recall<SkillDetail>(key);
   if (cached) return cached;
 
-  const { name, source } = splitSkillId(id);
-  const repoSource = hint?.source ?? source;
-  const [md, gh, repo] = await Promise.all([
-    loadSkillmdMarkdown(id),
+  const { name, source, owner, repo: repoName } = splitSkillId(id);
+  const repoSource = hint?.source && isGithubName(hint.source.split("/")[0] ?? "")
+    ? hint.source
+    : source;
+  const [gh, repo] = await Promise.all([
     loadGithubMarkdown(id),
     loadGithubRepo(repoSource),
   ]);
-  const loaded = gh ?? md;
+  let loaded = gh;
+  if (!loaded) {
+    loaded = await loadSkillmdMarkdown(id);
+  }
+  if (!loaded && owner && repoName && isGithubName(owner) && isGithubName(repoName)) {
+    const listed = await resolveRepo(owner, repoName).catch(() => []);
+    const match =
+      listed.find((item) => item.name.toLowerCase() === name.toLowerCase()) ?? listed[0];
+    if (match) {
+      const text = await readText(match.rawUrl);
+      if (text && looksLikeSkill(text)) loaded = { markdown: text, rawUrl: match.rawUrl };
+    }
+  }
   const githubUrl = repo?.url ?? `https://github.com/${repoSource}`;
   if (!loaded) {
     return hint
@@ -258,7 +275,7 @@ export async function loadSkillDetail(id: string, hint?: SkillRecord): Promise<S
       : null;
   }
 
-  const parsed = matter(loaded.markdown);
+  const parsed = safeMatter(loaded.markdown);
   const detail: SkillDetail = {
     id,
     name: String(parsed.data.name ?? hint?.name ?? name),
@@ -286,13 +303,16 @@ type GithubTree = {
 };
 
 export async function resolveRepo(owner: string, repo: string) {
+  if (!isGithubName(owner) || !isGithubName(repo)) {
+    throw new Error("仓库名不合法");
+  }
   const key = `repo:${owner}/${repo}`;
   const cached = recall<ResolvedSkill[]>(key);
   if (cached) return cached;
 
   const treeRes = await fetch(
     `https://api.github.com/repos/${owner}/${repo}/git/trees/HEAD?recursive=1`,
-    { headers: githubHeaders(), next: { revalidate: 300 } },
+    { headers: githubHeaders(), next: { revalidate: 300, tags: ["github-repo"] } },
   );
   if (!treeRes.ok) {
     throw new Error(
@@ -307,20 +327,23 @@ export async function resolveRepo(owner: string, repo: string) {
     .map((item) => item.path)
     .slice(0, 24);
 
-  const resolved: ResolvedSkill[] = [];
-  for (const path of paths) {
-    const rawUrl = `https://raw.githubusercontent.com/${owner}/${repo}/HEAD/${path}`;
-    const markdown = await readText(rawUrl);
-    if (!markdown || !looksLikeSkill(markdown)) continue;
-    const parsed = matter(markdown);
-    resolved.push({
-      path,
-      name: String(parsed.data.name ?? path.split("/").at(-2) ?? path),
-      description: String(parsed.data.description ?? ""),
-      rawUrl,
-      hasScripts: hasScripts(markdown, path),
-    });
-  }
+  const resolved = (
+    await Promise.all(
+      paths.map(async (path) => {
+        const rawUrl = `https://raw.githubusercontent.com/${owner}/${repo}/HEAD/${path}`;
+        const markdown = await readText(rawUrl);
+        if (!markdown || !looksLikeSkill(markdown)) return null;
+        const parsed = safeMatter(markdown);
+        return {
+          path,
+          name: String(parsed.data.name ?? path.split("/").at(-2) ?? path),
+          description: String(parsed.data.description ?? ""),
+          rawUrl,
+          hasScripts: hasScripts(markdown, path),
+        } satisfies ResolvedSkill;
+      }),
+    )
+  ).filter((item): item is ResolvedSkill => Boolean(item));
 
   return remember(key, 300_000, resolved);
 }

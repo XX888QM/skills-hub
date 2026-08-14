@@ -1,7 +1,7 @@
 import { BadgeCheck } from "lucide-react";
 import Link from "next/link";
-import { formatInstalls, skillHref } from "@/lib/format";
-import { originLabel } from "@/lib/translate";
+import { Tx, TxInstalls, TxOrigin } from "@/components/Tx";
+import { skillHref } from "@/lib/format";
 import type { SkillRecord } from "@/lib/types";
 
 export function SkillRow({ skill }: { skill: SkillRecord }) {
@@ -14,9 +14,9 @@ export function SkillRow({ skill }: { skill: SkillRecord }) {
         <div className="flex flex-wrap items-center gap-2">
           <span className="font-medium">{skill.name}</span>
           {skill.verified ? (
-            <span className="inline-flex items-center gap-1 text-xs font-medium text-foreground">
+            <span className="inline-flex items-center gap-1 whitespace-nowrap text-xs font-medium text-foreground">
               <BadgeCheck className="h-3.5 w-3.5" strokeWidth={2} aria-hidden />
-              已核验
+              <Tx k="verified" />
             </span>
           ) : null}
         </div>
@@ -26,9 +26,11 @@ export function SkillRow({ skill }: { skill: SkillRecord }) {
       </div>
       <span className="hide-sm truncate text-sm text-quiet">{skill.source}</span>
       <span className="hide-sm text-right font-mono text-sm tabular-nums">
-        {formatInstalls(skill.installs)}
+        <TxInstalls value={skill.installs} />
       </span>
-      <span className="text-right text-sm text-quiet">{originLabel(skill.origin)}</span>
+      <span className="text-right text-sm text-quiet">
+        <TxOrigin origin={skill.origin} />
+      </span>
     </Link>
   );
 }
@@ -37,8 +39,12 @@ export function SkillList({ skills }: { skills: SkillRecord[] }) {
   if (skills.length === 0) {
     return (
       <div className="rounded-2xl border border-dashed border-border px-6 py-16 text-center text-quiet">
-        <p>没有找到匹配的 Skill。</p>
-        <p className="mt-2">换个中文场景词，或到上架页贴 `owner/repo` 解析。</p>
+        <p className="text-pretty">
+          <Tx k="empty.skill" />
+        </p>
+        <p className="mt-2 text-pretty">
+          <Tx k="empty.hint" />
+        </p>
       </div>
     );
   }
@@ -46,10 +52,18 @@ export function SkillList({ skills }: { skills: SkillRecord[] }) {
   return (
     <div className="overflow-hidden rounded-2xl bg-surface">
       <div className="catalog-row px-5 py-4 text-xs font-medium text-quiet sm:px-6">
-        <span>名称</span>
-        <span className="hide-sm">仓库</span>
-        <span className="hide-sm text-right">安装量</span>
-        <span className="text-right">来源</span>
+        <span className="whitespace-nowrap">
+          <Tx k="catalog.name" />
+        </span>
+        <span className="hide-sm whitespace-nowrap">
+          <Tx k="catalog.repo" />
+        </span>
+        <span className="hide-sm whitespace-nowrap text-right">
+          <Tx k="catalog.installs" />
+        </span>
+        <span className="whitespace-nowrap text-right">
+          <Tx k="skill.origin" />
+        </span>
       </div>
       <div className="divide-y divide-muted">
         {skills.map((skill) => (
