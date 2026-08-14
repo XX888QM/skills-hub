@@ -63,13 +63,20 @@ export const metadata: Metadata = {
     title: siteConfig.defaultTitle,
     description: siteConfig.description,
     url: "/",
-    images: [{ url: "/logo-hub.png", alt: siteConfig.name }],
+    images: [
+      {
+        url: "/og.png",
+        width: 1731,
+        height: 909,
+        alt: siteConfig.defaultTitle,
+      },
+    ],
   },
   twitter: {
-    card: "summary",
+    card: "summary_large_image",
     title: siteConfig.defaultTitle,
     description: siteConfig.description,
-    images: ["/logo-hub.png"],
+    images: ["/og.png"],
   },
   icons: {
     icon: "/logo-hub.png",

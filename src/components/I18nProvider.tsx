@@ -4,20 +4,11 @@ import {
   createContext,
   useCallback,
   useContext,
-  useEffect,
   useMemo,
   useState,
   type ReactNode,
 } from "react";
-import {
-  detectLocale,
-  isLocale,
-  localeMeta,
-  LOCALE_COOKIE,
-  LOCALE_MAX_AGE,
-  translate,
-  type Locale,
-} from "@/lib/i18n";
+import { localeMeta, LOCALE_COOKIE, LOCALE_MAX_AGE, translate, type Locale } from "@/lib/i18n";
 
 type I18nContextValue = {
   locale: Locale;
@@ -46,24 +37,6 @@ export function I18nProvider({
   initialLocale?: Locale;
 }) {
   const [locale, setLocaleState] = useState<Locale>(initialLocale);
-
-  useEffect(() => {
-    let stored: string | null = null;
-    try {
-      stored = localStorage.getItem("locale");
-    } catch {
-      stored = null;
-    }
-    const cookieMatch = document.cookie.match(/(?:^|; )locale=([^;]+)/);
-    const cookie = cookieMatch ? decodeURIComponent(cookieMatch[1]) : null;
-    const next = isLocale(stored)
-      ? stored
-      : isLocale(cookie)
-        ? cookie
-        : detectLocale(navigator.language);
-    setLocaleState(next);
-    persistLocale(next);
-  }, []);
 
   const setLocale = useCallback((next: Locale) => {
     setLocaleState(next);

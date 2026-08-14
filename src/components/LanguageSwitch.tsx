@@ -66,10 +66,7 @@ export function LanguageSwitch() {
   const menuRef = useRef<HTMLUListElement>(null);
 
   useLayoutEffect(() => {
-    if (!open) {
-      setCoords(null);
-      return;
-    }
+    if (!open) return;
 
     function sync() {
       const button = buttonRef.current;
@@ -94,9 +91,13 @@ export function LanguageSwitch() {
       const target = event.target as Node;
       if (buttonRef.current?.contains(target) || menuRef.current?.contains(target)) return;
       setOpen(false);
+      setCoords(null);
     }
     function onKey(event: KeyboardEvent) {
-      if (event.key === "Escape") setOpen(false);
+      if (event.key === "Escape") {
+        setOpen(false);
+        setCoords(null);
+      }
     }
     document.addEventListener("mousedown", onPointer);
     document.addEventListener("keydown", onKey);
@@ -134,6 +135,7 @@ export function LanguageSwitch() {
                   onClick={() => {
                     setLocale(item);
                     setOpen(false);
+                    setCoords(null);
                   }}
                   onKeyDown={(event) => {
                     if (event.key !== "ArrowDown" && event.key !== "ArrowUp") return;
@@ -166,7 +168,10 @@ export function LanguageSwitch() {
         aria-haspopup="listbox"
         aria-expanded={open}
         aria-label={t("lang.label")}
-        onClick={() => setOpen((value) => !value)}
+        onClick={() => {
+          setCoords(null);
+          setOpen((value) => !value);
+        }}
         className="inline-flex min-h-11 items-center whitespace-nowrap rounded-full border border-white/15 bg-background px-3.5 text-[13px] text-quiet transition-colors duration-200 hover:text-foreground"
       >
         <LocaleRow locale={locale} />

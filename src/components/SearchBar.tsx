@@ -31,6 +31,7 @@ export function SearchBar({
     event.preventDefault();
     const q = value.trim();
     if (!q) return;
+    window.scrollTo(0, 0);
     router.push(`/search?q=${encodeURIComponent(q)}`);
   }
 

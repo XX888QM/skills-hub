@@ -29,6 +29,7 @@ function asUrl(value?: string) {
 
 export function getSiteUrl() {
   return (
+    asUrl(process.env.SITE_URL) ||
     asUrl(process.env.NEXT_PUBLIC_SITE_URL) ||
     asUrl(process.env.VERCEL_PROJECT_PRODUCTION_URL) ||
     asUrl(process.env.VERCEL_URL) ||

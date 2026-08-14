@@ -40,11 +40,13 @@ export async function generateMetadata({
       description,
       url: path,
       type: "article",
+      images: [],
     },
     twitter: {
       card: "summary",
       title: `${raw.name} · ${siteConfig.name}`,
       description,
+      images: [],
     },
   };
 }

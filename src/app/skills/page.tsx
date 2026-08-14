@@ -23,6 +23,7 @@ export const metadata: Metadata = {
 };
 
 async function SkillsCatalogLoader() {
+  let catalog: { items: CatalogItem[]; hasMore: boolean };
   try {
     const first = await loadCatalogFirstPage();
     const localized = await localizeRecordsBounded(first.items, 1200);
@@ -33,10 +34,11 @@ async function SkillsCatalogLoader() {
       forks: first.items[index]?.forks,
       pushedAt: first.items[index]?.pushedAt,
     }));
-    return <SkillCatalog items={items} hasMore={first.hasMore} />;
+    catalog = { items, hasMore: first.hasMore };
   } catch {
-    return <SkillCatalog items={[]} hasMore />;
+    catalog = { items: [], hasMore: true };
   }
+  return <SkillCatalog items={catalog.items} hasMore={catalog.hasMore} />;
 }
 
 export default function SkillsPage() {

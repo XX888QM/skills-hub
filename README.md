@@ -21,17 +21,17 @@ npm run build
 npm start
 ```
 
-## 上线（Vercel）
+## 上线（OpenAI Sites）
 
-1. 把仓库接到 Vercel，Framework 选 Next.js。
-2. 在项目 Environment Variables 里填：
-   - `NEXT_PUBLIC_SITE_URL`：正式域名，例如 `https://xxx.vercel.app` 或你的自定义域
+1. 用 OpenAI Sites 创建站点并发布当前版本。
+2. 在站点环境变量里填：
+   - `SITE_URL`：正式访问地址或你的自定义域
    - `GITHUB_TOKEN`：GitHub 只读 token，避免公开接口额度不够
-   - `CRON_SECRET`：随便一串足够长的随机字符。Vercel 每天 UTC 16:00（北京时间 0:00）打 `/api/cron/refresh` 时会带上它
-3. 部署 Production。
+   - `CRON_SECRET`：仅在外部定时任务调用 `/api/cron/refresh` 时需要
+3. 发布生产版本。
 4. 打开首页、搜索、全部、任意一条详情、预览仓库，确认能出说明书和安装命令。
 
-不填 `GITHUB_TOKEN` 也能上，流量一大热门和详情可能暂时空。不填 `CRON_SECRET` 则每日刷新不会跑。
+不填 `GITHUB_TOKEN` 也能上，流量一大热门和详情可能暂时空。页面数据本身会按缓存时间更新；`CRON_SECRET` 只用于额外的主动刷新。
 
 ## 页面
 

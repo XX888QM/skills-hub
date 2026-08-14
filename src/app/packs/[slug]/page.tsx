@@ -27,6 +27,13 @@ export async function generateMetadata({
       title: `${pack.title} · 汇总skill`,
       description: pack.summary,
       url: `/packs/${pack.slug}`,
+      images: [],
+    },
+    twitter: {
+      card: "summary",
+      title: `${pack.title} · 汇总skill`,
+      description: pack.summary,
+      images: [],
     },
   };
 }
