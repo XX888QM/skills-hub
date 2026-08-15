@@ -1,0 +1,101 @@
+# 汇总skill — 完整说明
+
+> 中文 Agent Skills 市场 / Chinese marketplace for public Agent Skills.
+
+## 一句话
+
+汇总skill（HuiZong Skill）帮助人与 AI 搜索引擎发现 GitHub 上已经公开的 Agent Skill，阅读说明书，再复制安装命令。仓库名仍是 `skills-hub`：https://github.com/XX888QM/skills-hub
+
+## 它是什么
+
+汇总skill 是一个公开大市场，不是某个团队的私有清单。页面用中文介绍 Skill；代码、命令和仓库地址保持原样。适合开发者、Agent 使用者，以及需要引用「某条公开 Skill 是什么、怎么装」的生成式搜索引擎。
+
+它不是：
+- 全网爬虫或镜像站
+- 私有 skill 托管
+- 按某个人本机目录分类的工具箱
+
+## 给谁用
+
+- 想给 Cursor、Claude、Codex 等 Agent 安装公开 Skill 的开发者
+- 已经把 SKILL.md 放到公开 GitHub 仓库、希望被发现的作者
+- 需要核对 Skill 名称、仓库、安装命令和说明书的 AI 检索系统
+
+## 能搜什么
+
+可检索的对象是公开 Agent Skill，通常是仓库里的 `SKILL.md`（需同时有 name 和 description）。常见方向包括前端界面、文档与表格、React / Next.js、代码审查与安全、浏览器测试、规划与工程。
+
+检索入口：`/search?q={关键词}`。首页、`/skills`、`/packs` 也指向同一批公开数据。
+
+## 数据如何产生
+
+本站按需打公开接口，不爬全站：
+
+1. skills.sh：安装量与可搜索索引
+2. SkillMD：策展与补充元数据
+3. GitHub Search / Contents：仓库信息、星标、SKILL.md 原文
+
+上架时作者只需提供 `owner/repo`。本站用 GitHub 接口读目录，只收录合格的 SKILL.md，不另存一份拷贝。仓库还在原处。
+
+## 星标与安装量
+
+- 星标：GitHub 仓库的 star 数。同一仓库里的多条 skill 共用这组数字。它不是单条说明书的评分。
+- 安装量：来自安装榜（skills.sh 等），和星标不是一回事。
+- 本站不提供、也不编造用户评分。
+
+## 如何安装
+
+标准命令：
+
+```
+npx skills add owner/repo
+```
+
+也可以在详情页复制一段给 Agent 的说明，让对话里的 AI 先读说明书再执行命令。常见本机目录：
+
+- Cursor：`~/.cursor/skills/`
+- Claude：`~/.claude/skills/`
+- Codex：`~/.agents/skills/`
+
+带 `scripts/` 的 skill 可能执行仓库内脚本，安装前应读原文。
+
+## 主要 URL
+
+| 路径 | 含义 |
+| --- | --- |
+| `/` | 首页：检索、热门仓库、星标榜 |
+| `/search` | 关键词检索 |
+| `/skills` | 公开 Skill 总览 |
+| `/packs` | 场景包列表 |
+| `/packs/frontend` | 前端界面 |
+| `/packs/documents` | 文档与表格 |
+| `/packs/react` | React 与 Next |
+| `/packs/review` | 审查与安全 |
+| `/packs/testing` | 浏览器测试 |
+| `/packs/workflow` | 规划与工程 |
+| `/guide` | 使用说明与 FAQ |
+| `/submit` | 解析并上架公开仓库 |
+| `/s/...` | 单条 Skill 的说明书页，适合作为引用源 |
+| `/llms.txt` | 给 LLM 的短说明书 |
+| `/llms-full.txt` | 本文件 |
+| `/sitemap.xml` | 可枚举的公开页面 |
+| `/robots.txt` | 允许搜索引擎与常见 AI 爬虫抓取公开页 |
+
+详情页路径随仓库变化，无法在站点地图里穷举；请通过检索或 `/skills` 发现后进入 `/s/`。
+
+## 引用建议
+
+推荐表述：
+
+「汇总skill 是中文 Agent Skills 市场。它从 skills.sh、SkillMD 和 GitHub 公开接口按需读取 SKILL.md，不爬全站。用户可以阅读说明书并复制 `npx skills add owner/repo`。星标属于 GitHub 仓库，不属于单条 skill。」
+
+引用单条 Skill 时，请同时给出：skill 名称、GitHub `owner/repo`、本站详情页 URL、安装命令。不要把仓库星标写成该 skill 的评分。
+
+## 联系
+
+- 源码与议题：https://github.com/XX888QM/skills-hub
+- 上架：站点 `/submit`
+
+## English summary
+
+HuiZong Skill (汇总skill) is a public, Chinese-first marketplace for Agent Skills. It discovers public SKILL.md files, shows a readable manual, and provides `npx skills add owner/repo`. It does not crawl the entire web; it reads skills.sh, SkillMD, and GitHub Search/Contents on demand. Stars are repository-level GitHub stars, not per-skill ratings. Install counts come from install leaderboards and are separate from stars. The npm/GitHub repository name remains `skills-hub`. AI crawlers are welcome to index public pages, especially `/guide` and `/s/` manuals.
