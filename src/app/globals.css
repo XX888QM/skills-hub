@@ -3,15 +3,15 @@
 :root {
   --primary: #000000;
   --on-primary: #f5f5f5;
-  --secondary: #262626;
-  --accent: #f5f5f5;
-  --on-accent: #0a0a0a;
-  --background: #000000;
-  --foreground: #f5f5f5;
-  --quiet: #c4c4cc;
-  --muted: #1a1a1a;
-  --border: #2e2e2e;
-  --surface: #121212;
+  --secondary: #24231f;
+  --accent: #eeeae1;
+  --on-accent: #0a0a08;
+  --background: #050504;
+  --foreground: #eeeae1;
+  --quiet: #9b9890;
+  --muted: #171713;
+  --border: #302f2a;
+  --surface: #0d0d0b;
   --destructive: #f87171;
   --ring: #f5f5f5;
   --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.45);
@@ -53,6 +53,10 @@ body {
   min-height: 100vh;
   background: var(--background);
   color: var(--foreground);
+}
+
+.font-editorial {
+  font-family: Georgia, "Songti SC", "STSong", "Noto Serif SC", serif;
 }
 
 @layer base {
@@ -160,22 +164,6 @@ body {
   color: var(--accent);
   text-decoration: underline;
   text-underline-offset: 3px;
-}
-
-.hero-title-neon-cyan {
-  color: #3ef6ff;
-  text-shadow:
-    0 0 8px rgba(62, 246, 255, 0.9),
-    0 0 22px rgba(62, 246, 255, 0.5),
-    0 0 48px rgba(62, 246, 255, 0.28);
-}
-
-.hero-title-neon-pink {
-  color: #ff3ec8;
-  text-shadow:
-    0 0 8px rgba(255, 62, 200, 0.9),
-    0 0 22px rgba(255, 62, 200, 0.45),
-    0 0 48px rgba(122, 107, 255, 0.22);
 }
 
 @media (prefers-reduced-motion: reduce) {

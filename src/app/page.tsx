@@ -5,7 +5,6 @@ import { CategoryGrid } from "@/components/CategoryGrid";
 import { HomeHero } from "@/components/HomeHero";
 import { SectionInner } from "@/components/PageFrame";
 import { Tx } from "@/components/Tx";
-import { Reveal, RevealHeading, RevealStagger } from "@/components/Reveal";
 import { TrendingGrid, TrendingGridFallback } from "@/components/TrendingGrid";
 import { loadStarBoard } from "@/lib/stars";
 
@@ -14,41 +13,35 @@ export const revalidate = 86400;
 async function DailyHot() {
   const board = await loadStarBoard(12);
   return (
-    <>
-      <section className="py-24 sm:py-32">
-        <SectionInner>
-          <RevealHeading className="text-balance text-4xl font-normal leading-[1.25] tracking-tight sm:text-5xl lg:text-6xl">
-            <Tx k="home.hotTitle" />
-          </RevealHeading>
-          <Reveal>
-            <p className="mt-5 max-w-2xl text-pretty text-lg leading-8 text-quiet">
-              <Tx k="home.hotSub" />
-            </p>
-          </Reveal>
-          <RevealStagger className="mt-14">
-            <TrendingGrid items={board.slice(0, 6)} />
-          </RevealStagger>
-        </SectionInner>
-      </section>
-    </>
+    <section className="border-b border-border py-24 sm:py-32">
+      <SectionInner className="max-w-[1440px] lg:px-12">
+        <SectionLabel textKey="home.sectionHot" />
+        <h2 className="font-editorial mt-5 text-balance text-4xl font-normal leading-[1.1] tracking-tight sm:text-6xl">
+          <Tx k="home.hotTitle" />
+        </h2>
+        <p className="mt-5 max-w-2xl text-pretty text-lg leading-8 text-quiet">
+          <Tx k="home.hotSub" />
+        </p>
+        <div className="mt-14"><TrendingGrid items={board.slice(0, 6)} /></div>
+      </SectionInner>
+    </section>
   );
 }
 
 function DailyHotFallback() {
   return (
-    <>
-      <section className="py-24 sm:py-32">
-        <SectionInner>
-          <h2 className="text-balance text-4xl font-normal leading-[1.25] tracking-tight sm:text-5xl lg:text-6xl">
-            <Tx k="home.hotTitle" />
-          </h2>
-          <div className="mt-14">
-            <TrendingGridFallback />
-          </div>
-        </SectionInner>
-      </section>
-    </>
+    <section className="border-b border-border py-24 sm:py-32">
+      <SectionInner className="max-w-[1440px] lg:px-12">
+        <SectionLabel textKey="home.sectionHot" />
+        <h2 className="font-editorial mt-5 text-balance text-4xl font-normal leading-[1.1] tracking-tight sm:text-6xl"><Tx k="home.hotTitle" /></h2>
+        <div className="mt-14"><TrendingGridFallback /></div>
+      </SectionInner>
+    </section>
   );
+}
+
+function SectionLabel({ textKey }: { textKey: string }) {
+  return <p className="font-mono text-xs tracking-[0.16em] text-quiet uppercase"><Tx k={textKey} /></p>;
 }
 
 export default function HomePage() {
@@ -56,19 +49,12 @@ export default function HomePage() {
     <div>
       <HomeHero />
 
-      <section className="border-t border-border/70 py-24 sm:py-32">
-        <SectionInner>
-          <RevealHeading className="text-balance text-4xl font-normal leading-[1.25] tracking-tight sm:text-5xl lg:text-6xl">
-            <Tx k="home.packsTitle" />
-          </RevealHeading>
-          <Reveal>
-            <p className="mt-5 max-w-2xl text-pretty text-lg leading-8 text-quiet">
-              <Tx k="home.packsSub" />
-            </p>
-          </Reveal>
-          <RevealStagger className="mt-14">
-            <CategoryGrid />
-          </RevealStagger>
+      <section className="border-b border-border py-24 sm:py-32">
+        <SectionInner className="max-w-[1440px] lg:px-12">
+          <SectionLabel textKey="home.sectionPacks" />
+          <h2 className="font-editorial mt-5 text-balance text-4xl font-normal leading-[1.1] tracking-tight sm:text-6xl"><Tx k="home.packsTitle" /></h2>
+          <p className="mt-5 max-w-2xl text-pretty text-lg leading-8 text-quiet"><Tx k="home.packsSub" /></p>
+          <div className="mt-14"><CategoryGrid editorial /></div>
         </SectionInner>
       </section>
 
@@ -76,52 +62,56 @@ export default function HomePage() {
         <DailyHot />
       </Suspense>
 
-      <section className="border-t border-border/70 py-24 sm:py-32">
-        <SectionInner className="max-w-4xl">
-          <RevealStagger batchMax={1}>
+      <section className="border-b border-border py-24 sm:py-32">
+        <SectionInner className="max-w-[1440px] lg:px-12">
+          <SectionLabel textKey="home.sectionTrust" />
+          <h2 className="font-editorial mt-5 text-balance text-4xl font-normal leading-[1.1] tracking-tight sm:text-6xl"><Tx k="home.trustTitle" /></h2>
+          <div className="mt-14 grid border-t border-l border-border md:grid-cols-3">
             {[
               { title: "home.p1t", text: "home.p1d" },
               { title: "home.p2t", text: "home.p2d" },
               { title: "home.p3t", text: "home.p3d" },
-            ].map((item) => (
-              <div key={item.title} className="reveal-item border-t border-border py-12 first:border-t-0 first:pt-0 sm:py-16">
-                <h2 className="text-balance text-4xl font-normal leading-[1.25] tracking-tight sm:text-5xl">
+            ].map((item, index) => (
+              <article key={item.title} className="border-r border-b border-border p-8 sm:p-10">
+                <span className="font-mono text-xs text-quiet">{String(index + 1).padStart(2, "0")}</span>
+                <h3 className="font-editorial mt-12 text-balance text-3xl font-normal leading-[1.2] tracking-tight">
                   <Tx k={item.title} />
-                </h2>
+                </h3>
                 <p className="mt-4 max-w-2xl text-pretty text-lg leading-8 text-quiet">
                   <Tx k={item.text} />
                 </p>
-              </div>
+              </article>
             ))}
-          </RevealStagger>
+          </div>
         </SectionInner>
       </section>
 
-      <section className="bg-accent text-on-accent">
-        <SectionInner className="py-24 sm:py-32">
-          <Reveal>
-            <h2 className="text-balance text-4xl font-normal leading-[1.25] tracking-tight sm:text-5xl lg:text-6xl">
+      <section>
+        <SectionInner className="max-w-[1440px] py-24 sm:py-32 lg:px-12">
+          <div className="border border-border p-8 sm:p-12 lg:grid lg:grid-cols-[1fr_auto] lg:items-end lg:gap-12">
+            <div>
+              <SectionLabel textKey="home.sectionPublic" />
+              <h2 className="font-editorial mt-5 text-balance text-4xl font-normal leading-[1.1] tracking-tight sm:text-6xl">
               <Tx k="home.ctaTitle" />
-            </h2>
-            <p className="mt-6 max-w-2xl text-pretty text-lg leading-8 text-on-accent/70">
-              <Tx k="home.ctaText" />
-            </p>
-            <div className="mt-10 flex flex-wrap items-center gap-4">
+              </h2>
+              <p className="mt-6 max-w-2xl text-pretty text-lg leading-8 text-quiet"><Tx k="home.ctaText" /></p>
+            </div>
+            <div className="mt-10 flex flex-wrap items-center gap-5 lg:mt-0">
               <Link
                 href="/packs"
-                className="inline-flex min-h-12 items-center gap-2 whitespace-nowrap rounded-2xl bg-[#0a0a0a] px-6 py-3 text-base font-medium text-[#f5f5f5] transition-opacity duration-200 hover:opacity-80"
+                className="inline-flex min-h-12 items-center gap-2 whitespace-nowrap border border-border px-6 py-3 text-base transition-colors hover:bg-surface"
               >
                 <Tx k="home.packsCta" />
                 <ArrowRight className="h-4 w-4" strokeWidth={2} aria-hidden />
               </Link>
               <Link
                 href="/submit"
-                className="inline-flex min-h-12 items-center whitespace-nowrap text-base text-on-accent/70 underline-offset-4 hover:underline"
+                className="inline-flex min-h-12 items-center whitespace-nowrap rounded-lg bg-[#eeeae1] px-6 text-base font-medium text-[#0a0a08] transition-opacity hover:opacity-85"
               >
                 <Tx k="home.ctaBtn" />
               </Link>
             </div>
-          </Reveal>
+          </div>
         </SectionInner>
       </section>
     </div>
