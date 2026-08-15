@@ -1,9 +1,10 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { SkillList } from "@/components/SkillRow";
 import { Tx, TxBusy, TxInstalls, TxUpdated } from "@/components/Tx";
 import { useI18n } from "@/components/I18nProvider";
+import { keepDescription } from "@/lib/description";
 import { skillHref } from "@/lib/format";
 import type { CatalogItem } from "@/lib/types";
 import Link from "next/link";
@@ -41,15 +42,20 @@ function mergeItems(current: CatalogItem[], incoming: CatalogItem[]) {
       forks: item.forks ?? prev.forks,
       pushedAt: item.pushedAt ?? prev.pushedAt,
       installs: item.installs ?? prev.installs,
-      description: item.description || prev.description,
+      description: keepDescription(prev.description, item.description),
     });
   }
   return [...map.values()];
 }
 
-function purposeOf(item: CatalogItem) {
+function purposeOf(item: CatalogItem, fallback: string) {
   const text = item.description?.trim();
-  return text || "—";
+  return text || fallback;
+}
+
+function needsPurpose(item: CatalogItem, locale: string) {
+  const text = item.description?.trim();
+  return !text || (locale === "zh" && !/[\u4e00-\u9fff]/.test(text));
 }
 
 function SkillCatalogRowsFallback() {
@@ -92,7 +98,7 @@ export function SkillCatalog({
   items: CatalogItem[];
   hasMore?: boolean;
 }) {
-  const { t } = useI18n();
+  const { locale, t } = useI18n();
   const [items, setItems] = useState(initialItems);
   const [sort, setSort] = useState<SortId>("stars");
   const [query, setQuery] = useState("");
@@ -100,6 +106,9 @@ export function SkillCatalog({
   const [error, setError] = useState<string | null>(
     initialItems.length === 0 && !initialHasMore ? t("skills.error") : null,
   );
+  const requestedDesc = useRef(new Set<string>());
+  const [fillingDesc, setFillingDesc] = useState(false);
+
   useEffect(() => {
     if (!initialHasMore) return;
 
@@ -165,6 +174,40 @@ export function SkillCatalog({
       return a.source.localeCompare(b.source);
     });
   }, [items, query, sort]);
+
+  useEffect(() => {
+    const missing = visible
+      .slice(0, 48)
+      .filter((item) => needsPurpose(item, locale) && !requestedDesc.current.has(item.id))
+      .slice(0, 24);
+    if (!missing.length) return;
+
+    missing.forEach((item) => requestedDesc.current.add(item.id));
+    setFillingDesc(true);
+
+    (async () => {
+      try {
+        const response = await fetch("/api/skills/describe", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ ids: missing.map((item) => item.id) }),
+        });
+        if (!response.ok) throw new Error(`describe ${response.status}`);
+        const data = (await response.json()) as { descriptions?: Record<string, string> };
+        if (!data.descriptions) return;
+        setItems((current) =>
+          current.map((item) => ({
+            ...item,
+            description: keepDescription(item.description, data.descriptions?.[item.id]),
+          })),
+        );
+      } catch {
+        // 保留“点开查看”的可用降级，不循环重试公开接口
+      } finally {
+        setFillingDesc(false);
+      }
+    })();
+  }, [locale, visible]);
 
   const empty = visible.length === 0;
   const failed = empty && !loadingMore && Boolean(error) && !query.trim();
@@ -253,7 +296,14 @@ export function SkillCatalog({
                     </p>
                   ) : null}
                 </div>
-                <p className="min-w-0 text-pretty text-sm">{purposeOf(item)}</p>
+                <p className="min-w-0 text-pretty text-sm text-quiet">
+                  {purposeOf(
+                    item,
+                    fillingDesc
+                      ? t("catalog.purposeLoading")
+                      : t("catalog.purposeFallback"),
+                  )}
+                </p>
                 <p className="truncate text-sm text-quiet">{item.source}</p>
                 <p className="flex items-center gap-1 font-mono text-sm tabular-nums sm:justify-end">
                   <Star className="h-3.5 w-3.5 fill-foreground" strokeWidth={0} aria-hidden />

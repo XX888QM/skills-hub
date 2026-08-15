@@ -4,6 +4,7 @@ import { PageFrame } from "@/components/PageFrame";
 import { Reveal, RevealHeading } from "@/components/Reveal";
 import { SkillCatalog, SkillCatalogFallback } from "@/components/SkillCatalog";
 import { Tx } from "@/components/Tx";
+import { keepDescription } from "@/lib/description";
 import { loadCatalogFirstPage } from "@/lib/stars";
 import { pageMeta, siteConfig } from "@/lib/site";
 import { localizeRecordsBounded } from "@/lib/translate";
@@ -27,13 +28,17 @@ async function SkillsCatalogLoader() {
   try {
     const first = await loadCatalogFirstPage();
     const localized = await localizeRecordsBounded(first.items, 1200);
-    const items: CatalogItem[] = localized.map((skill, index) => ({
-      ...first.items[index],
-      ...skill,
-      stars: first.items[index]?.stars,
-      forks: first.items[index]?.forks,
-      pushedAt: first.items[index]?.pushedAt,
-    }));
+    const items: CatalogItem[] = localized.map((skill, index) => {
+      const raw = first.items[index];
+      return {
+        ...raw,
+        ...skill,
+        stars: raw?.stars,
+        forks: raw?.forks,
+        pushedAt: raw?.pushedAt,
+        description: keepDescription(raw?.description, skill.description),
+      };
+    });
     catalog = { items, hasMore: first.hasMore };
   } catch {
     catalog = { items: [], hasMore: true };

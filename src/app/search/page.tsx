@@ -5,7 +5,7 @@ import { SearchBar } from "@/components/SearchBar";
 import { SkillList } from "@/components/SkillRow";
 import { Tx } from "@/components/Tx";
 import { pageMeta } from "@/lib/site";
-import { searchSkills } from "@/lib/sources";
+import { fillMissingDescriptions, searchSkills } from "@/lib/sources";
 import { localizeRecordsBounded } from "@/lib/translate";
 
 export const revalidate = 180;
@@ -43,7 +43,13 @@ export default async function SearchPage({
   const { q = "" } = await searchParams;
   const query = q.trim();
   const skills = query
-    ? await localizeRecordsBounded((await searchSkills(query)).slice(0, 60), 2000)
+    ? await localizeRecordsBounded(
+        await fillMissingDescriptions((await searchSkills(query)).slice(0, 60), {
+          timeoutMs: 2500,
+          concurrency: 8,
+        }),
+        2000,
+      )
     : [];
 
   return (

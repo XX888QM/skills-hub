@@ -6,7 +6,7 @@ import { SearchBar } from "@/components/SearchBar";
 import { SkillList } from "@/components/SkillRow";
 import { Tx } from "@/components/Tx";
 import { packMessageKey, scenePacks } from "@/lib/packs";
-import { searchSkills } from "@/lib/sources";
+import { fillMissingDescriptions, searchSkills } from "@/lib/sources";
 import { localizeRecordsBounded } from "@/lib/translate";
 
 export const revalidate = 180;
@@ -47,7 +47,13 @@ export default async function PackDetailPage({
   const pack = scenePacks.find((item) => item.slug === slug);
   if (!pack) notFound();
 
-  const skills = await localizeRecordsBounded((await searchSkills(pack.query)).slice(0, 40), 2000);
+  const skills = await localizeRecordsBounded(
+    await fillMissingDescriptions((await searchSkills(pack.query)).slice(0, 40), {
+      timeoutMs: 2500,
+      concurrency: 8,
+    }),
+    2000,
+  );
 
   return (
     <PageFrame className="space-y-12">

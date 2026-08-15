@@ -1,4 +1,4 @@
-import { loadGithubRepo, searchMany, searchSkills } from "./sources";
+import { fillMissingDescriptions, loadGithubRepo, searchMany, searchSkills } from "./sources";
 import { translateText } from "./translate";
 import type { CatalogItem, GithubRepo, StarBoardItem } from "./types";
 
@@ -219,7 +219,10 @@ export async function loadCatalogFirstPage() {
   const repos = await loadHotRepos(CATALOG_FIRST_PAGE_SIZE, {
     timeoutMs: CATALOG_FIRST_PAGE_TIMEOUT_MS,
   });
-  const items = repos.map(repoToCatalogItem);
+  const items = await fillMissingDescriptions(repos.map(repoToCatalogItem), {
+    timeoutMs: 1500,
+    concurrency: 6,
+  });
   return {
     items,
     hasMore: CATALOG_MORE_PAGES > 0,
@@ -232,14 +235,17 @@ export async function loadCatalogPage(page: number) {
 
   const extras = await searchMany(batch);
   const repos = await loadHotRepos(CATALOG_FIRST_PAGE_SIZE, { timeoutMs: 2500 });
-  const items = attachRepoMeta(
-    extras.map((skill) => ({
-      ...skill,
-      stars: undefined,
-      forks: undefined,
-      pushedAt: undefined,
-    })),
-    repos,
+  const items = await fillMissingDescriptions(
+    attachRepoMeta(
+      extras.map((skill) => ({
+        ...skill,
+        stars: undefined,
+        forks: undefined,
+        pushedAt: undefined,
+      })),
+      repos,
+    ),
+    { timeoutMs: 4000, concurrency: 8 },
   );
 
   return {

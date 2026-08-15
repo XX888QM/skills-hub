@@ -1,3 +1,4 @@
+import { keepDescription } from "./description";
 import { githubFileUrl, isGithubName, splitSkillId } from "./format";
 import { safeMatter } from "./matter";
 import type { GithubRepo, ResolvedSkill, SkillDetail, SkillRecord } from "./types";
@@ -20,6 +21,10 @@ type SkillmdHit = {
   agents?: string;
   category?: string;
   avg_rating?: number;
+};
+
+type SkillSnapshot = {
+  files?: Array<{ path?: string; contents?: string }>;
 };
 
 const cache = new Map<string, { expires: number; value: unknown }>();
@@ -97,7 +102,7 @@ export function mergeSkills(groups: SkillRecord[][]) {
         ...skill,
         id: current.origin === "skills.sh" ? current.id : skill.id,
         installs: current.installs ?? skill.installs,
-        description: current.description || skill.description,
+        description: keepDescription(current.description, skill.description),
         verified: current.verified || skill.verified,
         category: current.category || skill.category,
         agents: current.agents?.length ? current.agents : skill.agents,
@@ -199,10 +204,10 @@ export async function loadGithubRepo(source: string): Promise<GithubRepo | null>
   });
 }
 
-async function loadGithubMarkdown(id: string) {
-  const { owner, repo, name, source } = splitSkillId(id);
-  if (!owner || !repo) return null;
-  const candidates = [
+function skillMarkdownUrls(id: string) {
+  const { name, source } = splitSkillId(id);
+  if (!source.includes("/")) return [];
+  return [
     `https://raw.githubusercontent.com/${source}/HEAD/skills/${name}/SKILL.md`,
     `https://raw.githubusercontent.com/${source}/HEAD/${name}/SKILL.md`,
     `https://raw.githubusercontent.com/${source}/HEAD/.claude/skills/${name}/SKILL.md`,
@@ -210,6 +215,116 @@ async function loadGithubMarkdown(id: string) {
     `https://raw.githubusercontent.com/${source}/HEAD/.cursor/skills/${name}/SKILL.md`,
     `https://raw.githubusercontent.com/${source}/HEAD/SKILL.md`,
   ];
+}
+
+function descriptionFromMarkdown(markdown: string) {
+  if (!looksLikeSkill(markdown)) return "";
+  return String(safeMatter(markdown).data.description ?? "").trim();
+}
+
+async function loadSnapshotMarkdown(id: string) {
+  const { owner, repo, name } = splitSkillId(id);
+  if (!owner || !repo || !name) return null;
+  try {
+    const snapshot = await readJson<SkillSnapshot>(
+      `https://skills.sh/api/download/${encodeURIComponent(owner)}/${encodeURIComponent(repo)}/${encodeURIComponent(name)}`,
+    );
+    const skill = snapshot.files?.find(
+      (file) => file.path?.toLowerCase().endsWith("skill.md") && file.contents,
+    );
+    return skill?.contents && looksLikeSkill(skill.contents) ? skill.contents : null;
+  } catch {
+    return null;
+  }
+}
+
+export async function loadSkillDescription(id: string) {
+  const key = `desc:${id}`;
+  const cached = recall<string>(key);
+  if (cached !== null) return cached || undefined;
+
+  const snapshot = await loadSnapshotMarkdown(id);
+  const fromSnapshot = snapshot ? descriptionFromMarkdown(snapshot) : "";
+  if (fromSnapshot) return remember(key, 24 * 60 * 60_000, fromSnapshot);
+
+  const urls = skillMarkdownUrls(id);
+  if (urls.length) {
+    try {
+      const description = await Promise.any(
+        urls.map(async (url) => {
+          const text = await readText(url);
+          const description = text ? descriptionFromMarkdown(text) : "";
+          if (!description) throw new Error("miss");
+          return description;
+        }),
+      );
+      return remember(key, 24 * 60 * 60_000, description);
+    } catch {
+      // GitHub 路径没命中时再试 SkillMD
+    }
+  }
+
+  const listed = await loadSkillmdMarkdown(id);
+  const fromSkillmd = listed ? descriptionFromMarkdown(listed.markdown) : "";
+  if (fromSkillmd) return remember(key, 24 * 60 * 60_000, fromSkillmd);
+
+  remember(key, 15 * 60_000, "");
+  return undefined;
+}
+
+async function mapPool<T, R>(items: T[], limit: number, worker: (item: T) => Promise<R>) {
+  const result = new Array<R>(items.length);
+  let cursor = 0;
+  await Promise.all(
+    Array.from({ length: Math.min(limit, items.length) }, async () => {
+      while (cursor < items.length) {
+        const index = cursor;
+        cursor += 1;
+        result[index] = await worker(items[index]);
+      }
+    }),
+  );
+  return result;
+}
+
+export async function fillMissingDescriptions<T extends SkillRecord>(
+  items: T[],
+  opts?: { timeoutMs?: number; concurrency?: number },
+): Promise<T[]> {
+  const next = items.map((item) => ({ ...item }));
+  const missing = next
+    .map((item, index) => ({ item, index }))
+    .filter(({ item }) => !item.description?.trim());
+  if (!missing.length) return next;
+
+  let stopped = false;
+  const work = mapPool(missing, opts?.concurrency ?? 8, async ({ item, index }) => {
+    if (stopped || next[index].description?.trim()) return;
+    const description = await loadSkillDescription(item.id);
+    if (!stopped && description && !next[index].description?.trim()) {
+      next[index].description = description;
+    }
+  });
+
+  if (opts?.timeoutMs) {
+    await Promise.race([
+      work,
+      new Promise<void>((resolve) => {
+        setTimeout(() => {
+          stopped = true;
+          resolve();
+        }, opts.timeoutMs);
+      }),
+    ]);
+  } else {
+    await work;
+  }
+  return next;
+}
+
+async function loadGithubMarkdown(id: string) {
+  const candidates = skillMarkdownUrls(id);
+  if (!candidates.length) return null;
   try {
     return await Promise.any(
       candidates.map(async (url) => {
