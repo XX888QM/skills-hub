@@ -109,20 +109,28 @@ export default async function RootLayout({
         <script dangerouslySetInnerHTML={{ __html: localeBootScript }} />
       </head>
       <body className={`${sans.variable} ${mono.variable} ${sans.className} font-sans antialiased`}>
-        <I18nProvider initialLocale={initialLocale}>
-          <JsonLd data={siteJsonLd()} />
-          <a
-            href="#main"
-            className="sr-only focus:not-sr-only focus:absolute focus:top-3 focus:left-3 focus:z-50 focus:rounded-xl focus:bg-[#f5f5f5] focus:px-4 focus:py-2 focus:text-[#0a0a0a]"
-          >
-            跳到正文
-          </a>
-          <Header />
-          <main id="main" className="min-h-[70vh] w-full">
-            {children}
-          </main>
-          <Footer />
-        </I18nProvider>
+        <div className="site-aurora" aria-hidden="true">
+          <span className="site-aurora__veil site-aurora__veil--one" />
+          <span className="site-aurora__veil site-aurora__veil--two" />
+          <span className="site-aurora__ribbon site-aurora__ribbon--one" />
+          <span className="site-aurora__ribbon site-aurora__ribbon--two" />
+        </div>
+        <div className="site-content">
+          <I18nProvider initialLocale={initialLocale}>
+            <JsonLd data={siteJsonLd()} />
+            <a
+              href="#main"
+              className="sr-only focus:not-sr-only focus:absolute focus:top-3 focus:left-3 focus:z-50 focus:rounded-xl focus:bg-[#f5f5f5] focus:px-4 focus:py-2 focus:text-[#0a0a0a]"
+            >
+              跳到正文
+            </a>
+            <Header />
+            <main id="main" className="min-h-[70vh] w-full">
+              {children}
+            </main>
+            <Footer />
+          </I18nProvider>
+        </div>
       </body>
     </html>
   );
